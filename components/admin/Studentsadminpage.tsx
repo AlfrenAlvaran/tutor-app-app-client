@@ -269,13 +269,13 @@ export default function StudentsAdminPage() {
               Issue enrollment passes and track where each one stands.
             </p>
           </div>
-          <button
+          {/* <button
             onClick={openModal}
             className="group flex h-fit items-center gap-2 rounded-xl bg-gradient-to-r from-gold-600 to-gold-500 px-5 py-3 font-body text-sm font-semibold text-navy-950 shadow-gold transition-all duration-150 hover:shadow-gold-lg active:scale-[0.98]"
           >
             <PlusIcon className="h-4 w-4 transition-transform duration-150 group-hover:rotate-90" />
             Issue enrollment
-          </button>
+          </button> */}
         </div>
 
         {/* KPI cards */}
