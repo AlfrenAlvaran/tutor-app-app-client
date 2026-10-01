@@ -4,7 +4,7 @@ import StarField from "../shared/StarField";
 
 export default function EnrollHero({
   eyebrow = "Get Started",
-  title = "Enroll online in a few minutes",
+  title = "Online Appointment",
   description = "Fill out the form below and our team will match you with the right tutor and schedule — no payment required to reserve your spot.",
 }: EnrollHeroProps) {
   return (

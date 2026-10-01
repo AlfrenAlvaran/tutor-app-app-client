@@ -39,11 +39,12 @@ export interface Program {
   id: string;
   label: string;
   category: string;
-  mode: ProgramMode;
+  mode?: ProgramMode;
   price: number;
   duration: string;
+  durationInDays: number;
   description: string;
-  students: number;
+  students?: number;
   active: boolean;
 }
 

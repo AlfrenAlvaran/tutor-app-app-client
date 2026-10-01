@@ -1,17 +1,32 @@
 import {
   Program,
   ProgramsResponse,
+  ProgramResponse,
+  DeleteProgramResponse,
   CreateProgramPayload,
   UpdateProgramPayload,
   Enrollment,
   MyEnrollmentsResponse,
 } from "@/constant/request/type";
 import { api } from "../clients";
-import axios from "axios";
-import {
-  DeleteProgramResponse,
-  ProgramResponse,
-} from "@/constant/request/interface";
+import axios, { AxiosError } from "axios";
+
+type ApiErrorBody = {
+  error?: string;
+  details?: Record<string, string[]>;
+};
+
+/** Prefers the first field-level validation message, then the server's error text. */
+function apiErrorMessage(error: AxiosError<ApiErrorBody>, fallback: string) {
+  const data = error.response?.data;
+
+  const firstField = data?.details
+    ? Object.entries(data.details).find(([, msgs]) => msgs?.length)
+    : undefined;
+
+  if (firstField) return `${firstField[0]}: ${firstField[1].join(", ")}`;
+  return data?.error || fallback;
+}
 
 export async function fetchPrograms(): Promise<Program[]> {
   try {
@@ -79,10 +94,9 @@ export async function createProgram(
 
     return response.data.program;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<ApiErrorBody>(error)) {
       throw new Error(
-        error.response?.data?.error ||
-          "Unable to create program. Please try again.",
+        apiErrorMessage(error, "Unable to create program. Please try again."),
       );
     }
 
@@ -106,10 +120,9 @@ export async function updateProgram(
 
     return response.data.program;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<ApiErrorBody>(error)) {
       throw new Error(
-        error.response?.data?.error ||
-          "Unable to update program. Please try again.",
+        apiErrorMessage(error, "Unable to update program. Please try again."),
       );
     }
 
@@ -125,10 +138,9 @@ export async function deleteProgram(id: string): Promise<void> {
       throw new Error(response.data.error);
     }
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<ApiErrorBody>(error)) {
       throw new Error(
-        error.response?.data?.error ||
-          "Unable to delete program. Please try again.",
+        apiErrorMessage(error, "Unable to delete program. Please try again."),
       );
     }
 
@@ -138,7 +150,9 @@ export async function deleteProgram(id: string): Promise<void> {
 
 export async function getMyEnrolledProgram(): Promise<Enrollment[]> {
   try {
-    const response = await api.get<MyEnrollmentsResponse>("/students/my-enrolled-program");
+    const response = await api.get<MyEnrollmentsResponse>(
+      "/students/my-enrolled-program",
+    );
 
     if (!response.data.ok) {
       throw new Error(response.data.error);
@@ -152,5 +166,3 @@ export async function getMyEnrolledProgram(): Promise<Enrollment[]> {
     throw error;
   }
 }
-
-
