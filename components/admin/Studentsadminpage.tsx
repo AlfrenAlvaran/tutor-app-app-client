@@ -377,7 +377,7 @@ export default function StudentsAdminPage() {
 
           {!loading && !loadError && visibleStudents.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+              <table className="w-full min-w-215 border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-navy-line text-[11px] uppercase tracking-wide text-ink-faint">
                     <SortableHeader

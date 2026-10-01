@@ -3,8 +3,8 @@ import type { CTABannerProps } from "@/constant/guest/props";
 export default function CTABanner({
   title = "Ready to get started?",
   description = "Tell us what you're looking for and we'll match you with the right tutor within 1–2 business days.",
-  primaryLabel = "Enroll Online",
-  primaryHref = "/enroll",
+  primaryLabel = "Online Appointment",
+  primaryHref = "/appointment",
   secondaryLabel = "Back to Home",
   secondaryHref = "/",
 }: CTABannerProps) {

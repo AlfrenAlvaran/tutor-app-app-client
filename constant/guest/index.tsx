@@ -10,7 +10,7 @@ export const navigationLinks: NavigationChild[] = [
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
   { href: "/values", label: "Values" },
-  { href: "/enroll", label: "Enroll" },
+  { href: "/appointment", label: "Online Appointment" },
 ];
 
 export type TrustItem = {

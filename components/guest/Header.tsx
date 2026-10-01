@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navigationLinks } from "@/constant/guest";
+import Image from "next/image";
 
 const MOBILE_MENU_ID = "mobile-nav-menu";
 
@@ -107,9 +108,10 @@ const Header = () => {
       <div className="mx-auto max-w-295 px-4 sm:px-6 lg:px-7">
         <nav className="flex items-center justify-between" aria-label="Primary">
           <Link href={"/"} className="flex items-center gap-2 sm:gap-3">
-            <span className="flex h-8 w-8 sm:h-9.5 sm:w-9.5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-gold-600 font-display text-base sm:text-lg font-bold text-gold-400">
-              E
-            </span>
+          {/* <Image src="/" */}
+
+          <Image src="/logo.jpg" alt="Logo" className="flex h-8 w-8 sm:h-9.5 sm:w-9.5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-gold-600 font-display text-base sm:text-lg font-bold text-gold-400" width={30} height={30}/>
+           
             <span className="font-display text-[1.1rem] sm:text-[1.28rem] font-bold tracking-tight">
               Excel<span className="text-gold-500">Ed</span>
             </span>
