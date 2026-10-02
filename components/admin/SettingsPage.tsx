@@ -227,7 +227,9 @@ export default function AssignmentsPage() {
       ]);
 
       if (studentRes.status === "rejected") {
-        throw new Error(`Students: ${studentRes.reason?.message ?? studentRes.reason}`);
+        throw new Error(
+          `Students: ${studentRes.reason?.message ?? studentRes.reason}`,
+        );
       }
       setStudents(studentRes.value.data);
 
@@ -236,7 +238,6 @@ export default function AssignmentsPage() {
       } else {
         console.error("[assignments] getTutors failed:", tutorRes.reason);
       }
-
     } catch (err) {
       setLoadError(
         err instanceof Error
@@ -247,8 +248,6 @@ export default function AssignmentsPage() {
       setLoading(false);
     }
   };
-
- 
 
   useEffect(() => {
     const timer = setTimeout(loadData, 250);
@@ -293,26 +292,39 @@ export default function AssignmentsPage() {
 
   const confirmAssign = async () => {
     if (!assignTarget || !selectedTutorId) return;
+    const tutorId = selectedTutorId;
+    const target = assignTarget;
     setSaving(true);
     try {
-      const isReassign = Boolean(assignTarget.assignedTutor);
+      const isReassign = Boolean(target.assignedTutor);
       const action = isReassign ? reassignTutor : assignTutor;
-      const res = await action(assignTarget.id, {
-        tutorId: selectedTutorId,
+      await action(target.id, {
+        tutorId,
         scheduleDay: assignDay || undefined,
         scheduleStartTime: assignStart || undefined,
         scheduleEndTime: assignEnd || undefined,
       });
+
+      const tutorName = tutors.find((t) => t.id === tutorId)?.name ?? "";
       setStudents((prev) =>
-        prev.map((s) => (s.id === assignTarget.id ? res.data : s)),
+        prev.map((s) =>
+          s.id === target.id
+            ? {
+                ...s,
+                assignedTutor: { id: tutorId, name: tutorName },
+                scheduleDay: assignDay,
+                scheduleStartTime: assignStart,
+                scheduleEndTime: assignEnd,
+              }
+            : s,
+        ),
       );
-      const tutorName =
-        tutors.find((t) => t.id === selectedTutorId)?.name ?? "the tutor";
       showToast(
-        `${assignTarget.name} ${isReassign ? "reassigned to" : "assigned to"} ${tutorName}.`,
+        `${target.name} ${isReassign ? "reassigned to" : "assigned to"} ${tutorName || "the tutor"}.`,
       );
       setAssignTarget(null);
     } catch (err) {
+      console.error("[assignments] save failed:", err);
       showToast("Couldn't save the assignment. Please try again.", "red");
     } finally {
       setSaving(false);
@@ -324,13 +336,24 @@ export default function AssignmentsPage() {
     setUnassigning(true);
     setUpdatingId(unassignTarget.id);
     try {
-      const res = await unassignTutor(unassignTarget.id);
+      await unassignTutor(unassignTarget.id);
       setStudents((prev) =>
-        prev.map((s) => (s.id === unassignTarget.id ? res.data : s)),
+        prev.map((s) =>
+          s.id === unassignTarget.id
+            ? {
+                ...s,
+                assignedTutor: null,
+                scheduleDay: "",
+                scheduleStartTime: "",
+                scheduleEndTime: "",
+              }
+            : s,
+        ),
       );
       showToast(`${unassignTarget.name} is now unassigned.`);
       setUnassignTarget(null);
     } catch (err) {
+      console.error("[assignments] unassign failed:", err);
       showToast("Couldn't remove the assignment. Please try again.", "red");
     } finally {
       setUnassigning(false);
@@ -702,7 +725,6 @@ export default function AssignmentsPage() {
           </div>
         </div>
       )}
-
 
       {toast && <Toast message={toast.message} tone={toast.tone} />}
 

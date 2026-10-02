@@ -69,29 +69,50 @@ type RawAssignment = {
   teacher_id: string | { _id: string; name: string };
 };
 
+type AssignPayload = {
+  tutorId: string;
+  scheduleDay?: ScheduleDay;
+  scheduleStartTime?: string;
+  scheduleEndTime?: string;
+};
+
 async function apiFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<ApiEnvelope<T>> {
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
+    ...init,
     headers: {
       "Content-Type": "application/json",
       ...init?.headers,
     },
-    ...init,
   });
 
-  const body = (await res.json().catch(() => null)) as ApiEnvelope<T> | null;
+  // Read as text first: DELETE (and 204 responses) often have an empty body.
+  const text = await res.text().catch(() => "");
+  let body: ApiEnvelope<T> | null = null;
+  if (text) {
+    try {
+      body = JSON.parse(text) as ApiEnvelope<T>;
+    } catch {
+      body = null;
+    }
+  }
 
-  if (!res.ok || !body) {
+  if (!res.ok) {
     console.error(
       `[assignments api] ${init?.method ?? "GET"} ${API_BASE}${path} -> ${res.status}`,
-      body,
+      body ?? text,
     );
     throw new Error(
       body?.message || `Request to ${path} failed with status ${res.status}`,
     );
+  }
+
+  // Successful response with no JSON body (e.g. 204 No Content)
+  if (!body) {
+    return { success: true, data: null as T };
   }
 
   return body;
@@ -162,11 +183,13 @@ export async function getAssignableStudents(params: {
     search: params.search,
     limit: params.limit,
   });
-  const res = await apiFetch<RawStudent[]>(`/assign-students/assignable${query}`);
+  const res = await apiFetch<RawStudent[]>(
+    `/assign-students/assignable${query}`,
+  );
 
   if (!Array.isArray(res.data)) {
     console.error(
-      "[assignments] /students/assignable returned an unexpected shape:",
+      "[assignments] /assign-students/assignable returned an unexpected shape:",
       res,
     );
     throw new Error(
@@ -189,7 +212,7 @@ export async function getAssignableStudents(params: {
 
 export async function getTutors(): Promise<{ data: Tutor[] }> {
   const res = await apiFetch<RawTutor[]>("/tutors");
-  return { data: res.data.map(mapTutor) };
+  return { data: (res.data ?? []).map(mapTutor) };
 }
 
 async function findAssignmentIdForStudent(
@@ -198,24 +221,14 @@ async function findAssignmentIdForStudent(
   const res = await apiFetch<RawAssignment[]>(
     `/assign-students/student/${studentId}`,
   );
-  const [assignment] = res.data;
+  const [assignment] = res.data ?? [];
   return assignment ? assignment._id : null;
-}
-
-async function fetchStudent(studentId: string): Promise<AssignableStudent> {
-  const res = await apiFetch<RawStudent>(`/students/${studentId}`);
-  return mapStudent(res.data);
 }
 
 export async function assignTutor(
   studentId: string,
-  payload: {
-    tutorId: string;
-    scheduleDay?: ScheduleDay;
-    scheduleStartTime?: string;
-    scheduleEndTime?: string;
-  },
-): Promise<{ data: AssignableStudent }> {
+  payload: AssignPayload,
+): Promise<void> {
   await apiFetch<RawAssignment>("/assign-students", {
     method: "POST",
     body: JSON.stringify({
@@ -226,18 +239,12 @@ export async function assignTutor(
       scheduleEndTime: payload.scheduleEndTime,
     }),
   });
-  return { data: await fetchStudent(studentId) };
 }
 
 export async function reassignTutor(
   studentId: string,
-  payload: {
-    tutorId: string;
-    scheduleDay?: ScheduleDay;
-    scheduleStartTime?: string;
-    scheduleEndTime?: string;
-  },
-): Promise<{ data: AssignableStudent }> {
+  payload: AssignPayload,
+): Promise<void> {
   const assignmentId = await findAssignmentIdForStudent(studentId);
   if (!assignmentId) {
     return assignTutor(studentId, payload);
@@ -251,17 +258,13 @@ export async function reassignTutor(
       scheduleEndTime: payload.scheduleEndTime,
     }),
   });
-  return { data: await fetchStudent(studentId) };
 }
 
-export async function unassignTutor(
-  studentId: string,
-): Promise<{ data: AssignableStudent }> {
+export async function unassignTutor(studentId: string): Promise<void> {
   const assignmentId = await findAssignmentIdForStudent(studentId);
   if (assignmentId) {
-    await apiFetch<RawAssignment>(`/assign-students/${assignmentId}`, {
+    await apiFetch<unknown>(`/assign-students/${assignmentId}`, {
       method: "DELETE",
     });
   }
-  return { data: await fetchStudent(studentId) };
 }

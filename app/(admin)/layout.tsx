@@ -26,7 +26,7 @@ export default async function AdminLayout({
       <Sidebar />
       <div className="pl-18 transition-[padding] duration-300 lg:pl-64">
         {/* TopBar  */}
-        <Topbar />
+        {/* <Topbar /> */}
         <main className="p-6">{children}</main>
       </div>
     </div>

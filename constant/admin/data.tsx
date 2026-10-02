@@ -42,6 +42,15 @@ export const navItems: NaVItem[] = [
     ),
   },
   {
+    label: "Monitor",
+    href: "/monitor",
+    path: (
+      <>
+        <path d="M3 12h4l3-8 4 16 3-8h4" />
+      </>
+    ),
+  },
+  {
     label: "Programs",
     href: "/programs",
     path: (
@@ -71,17 +80,14 @@ export const navItems: NaVItem[] = [
     ),
   },
 ];
-
 export type EnrollmentStatus = "pending" | "confirmed" | "decline";
 
-
 export type EnrollmentRequests = {
-    _id: string
-    name: string
-    email: string
-    program: string
-    mode: string
-    status: EnrollmentStatus
-    submittedAt: string
-}
-
+  _id: string;
+  name: string;
+  email: string;
+  program: string;
+  mode: string;
+  status: EnrollmentStatus;
+  submittedAt: string;
+};
