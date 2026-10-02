@@ -72,6 +72,9 @@ export default function EnrollmentCompletionPage() {
         const res = await fetch(infoUrl(token), { cache: "no-store" });
         const payload = await res.json();
 
+
+        // console.log(payload)
+
         if (cancelled) return;
 
         if (res.status === 409) {

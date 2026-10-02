@@ -1,19 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  fetchTodayAttendance,
-  fetchCheckInQr,
-  fetchCheckOutQr,
-  type AttendanceQr,
-  type AttendanceStatus,
-} from "@/libs/api/attendance";
-import { ApiError } from "@/libs/api/errors";
+import { generateAttendance, type AttendanceRecord } from "@/libs/api/attendance";
 
 const POLL_MS = 3000;
 
-/** Polls today's attendance status for a student so the kiosk screen can react
- *  the moment a tutor scans them in or out. */
+export type AttendanceStatus = null | "checked_in" | "completed";
+
+export interface AttendanceQr {
+  refCode: string;
+  qrPayload: string;
+  expiresAt: string;
+}
+
+function deriveStatus(record: AttendanceRecord): AttendanceStatus {
+  if (record.checkOutTime) return "completed";
+  if (record.checkInTime) return "checked_in";
+  return null;
+}
+
+/** Polls today's attendance so the screen reacts when the tutor scans in/out. */
 export function useTodayAttendance(studentId: string) {
   const [status, setStatus] = useState<AttendanceStatus>(null);
   const [loading, setLoading] = useState(true);
@@ -21,24 +27,21 @@ export function useTodayAttendance(studentId: string) {
 
   const refresh = useCallback(async () => {
     try {
-      const data = await fetchTodayAttendance(studentId);
-      setStatus(data.status);
+      const { record } = await generateAttendance(); // reuses today's record
+      setStatus(deriveStatus(record));
       setError("");
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        // No check-in yet today — expected, not an error.
-        setStatus(null);
-        setError("");
-      } else {
-        setError(err instanceof Error ? err.message : "Unable to load attendance.");
-      }
+      setError(err instanceof Error ? err.message : "Unable to load attendance.");
     } finally {
       setLoading(false);
     }
-  }, [studentId]);
+  }, []);
 
   useEffect(() => {
-    if (!studentId) return;
+    if (!studentId) {
+      setLoading(false);
+      return;
+    }
     refresh();
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
@@ -47,10 +50,8 @@ export function useTodayAttendance(studentId: string) {
   return { status, loading, error, refresh };
 }
 
-/**
- * Fetches the right QR (check-in or check-out) for the student's current
- * status, and refetches automatically once the code expires.
- */
+/** Fetches the student's QR (same refCode is used for check-in and check-out)
+ *  and refetches automatically once it expires. */
 export function useAttendanceQr(studentId: string, status: AttendanceStatus) {
   const [qr, setQr] = useState<AttendanceQr | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,21 +59,28 @@ export function useAttendanceQr(studentId: string, status: AttendanceStatus) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
-    if (!studentId || status === "completed") return;
-    setLoading(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    if (!studentId || status === "completed") {
+      setQr(null);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const data =
-        status === "checked_in"
-          ? await fetchCheckOutQr(studentId)
-          : await fetchCheckInQr(studentId);
-      setQr(data);
+      const { record } = await generateAttendance();
+      setQr({
+        refCode: record.refCode,
+        qrPayload: record.qrPayload,
+        expiresAt: record.expiresAt,
+      });
       setError("");
 
-      const msUntilExpiry = new Date(data.expiresAt).getTime() - Date.now();
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      const msUntilExpiry = new Date(record.expiresAt).getTime() - Date.now();
       timeoutRef.current = setTimeout(load, Math.max(msUntilExpiry, 1000));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to generate QR code.");
+      timeoutRef.current = setTimeout(load, 5000); // retry on failure
     } finally {
       setLoading(false);
     }
